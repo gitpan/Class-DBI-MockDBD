@@ -1,0 +1,6 @@
+Revision history for Perl extension Class::DBI::MockDBD.
+
+0.01  Thu Mar 29 15:25:14 2007
+	- original version; created by h2xs 1.23 with options
+		-X Class::DBI::MockDBD
+
