@@ -53,9 +53,12 @@ __PACKAGE__->mk_classdata('mocked_statement_handle');
 
 __PACKAGE__->connection('dbi:Mock:', '', '', {});
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 =head1 METHODS
+
+Calling a method that touches the database without specifying the results with next_result or
+next_result_session method first will result in a fatal error.
 
 =head2 next_result
 
@@ -68,8 +71,15 @@ ClassName->next_result([ [qw/foo_id foo_name foo_bar/],[1,'aaaa','bbbb',]...]);
 
 ClassName->search(foo_bar => 'bbbb');
 
-Calling a method that touches the database without specifying the results with this
-method first will result in a fatal error.
+=head2 next_result_session
+
+ClassName->next_result_session([
+{ statement => 'select * from tablename where field = ?', results => [ .. ], bound_params => [ 10, qr/\d+/ ], },
+{ statement => 'select * from tablename where field = ?', results => [ .. ], bound_params => [ 10, qr/\d+/ ], },
+{ statement => 'select * from tablename where field = ?', results => [ .. ], bound_params => [ 10, qr/\d+/ ], },
+]);
+
+ClassName->search(foo_bar => 'bbbb');
 
 =head2 last_query_info
 
@@ -92,6 +102,13 @@ sub next_result {
   return;
 };
 
+sub next_result_session {
+  my ($class,$results) = @_;
+  my $session = DBD::Mock::Session->new('next_result_session' => (@$results) );
+  $class->db_Main->{mock_session} = $session;
+  $class->mocked_statement_handle(undef);
+  return;
+}
 
 sub last_query_info {
   my ($class,$type) = @_;
@@ -248,8 +265,6 @@ sub update {
 __END__
 
 =head1 BUGS AND CAVEATS
-
-* Doesn't currently support providing 'sessions' of mocked results
 
 * rv return value from execute is not correct (DBD::Mock issue)
 

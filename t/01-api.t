@@ -4,7 +4,7 @@ use strict;
 
 use Data::Dumper;
 
-use Test::More tests => 6;
+use Test::More tests => 8;
 
 use lib qw(t/);
 
@@ -27,27 +27,18 @@ my $objects = TestClass->sth_to_objects($sth);
 isa_ok($objects,'Class::DBI::Iterator');
 
 # diag "[debug] searching \n";
-
 TestClass->next_result($results);
 $objects = TestClass->search( foo_name=>'aaaa');
-
 isa_ok($objects,'Class::DBI::Iterator');
 
 
 #diag "[debug] getting first object \n";
-
 my $object = $objects->next();
-
-isa_ok($object,'TestClass');
-
-#warn "[debug] got object : ",$object->id,"\n";
-
-is($object->id,20);
-
-$object->foo_bar('ffff');
+is($object->id,20,'got object ok');
+isa_ok($object,'TestClass','got object ok');
 
 #diag "[debug] updating object  \n";
-
+$object->foo_bar('ffff');
 TestClass->next_result([['foo_id'],]);
 ok($object->update(), 'updated object ok');
 
@@ -56,3 +47,32 @@ ok($object->update(), 'updated object ok');
 my $new_object = TestClass->create({foo_id => 99, foo_name => 'cccc', foo_bar => 'sdasd' });
 
 isa_ok($new_object,'TestClass');
+
+TestClass->next_result_session([
+				{
+				 statement => qr/SELECT foo_id\s*FROM\s*testing123\s*WHERE\s*foo_bar\s+\=/,
+				 results => [ [qw/foo_id foo_name foo_bar/],[20,'aaaa','bbbb',], ],
+				 bound_params => [ qr/\w+/ ],
+				},
+				{
+				 statement => qr/SELECT foo_id\s*FROM\s*testing123\s*WHERE\s*foo_bar\s+\=/,
+				 results => [ [qw/foo_id foo_name foo_bar/],[21,'aaaa','cccc',], ],
+				 bound_params => [ qr/\w+/ ],
+				},
+			       ]);
+
+my $b_objects = TestClass->search(foo_bar => 'bbbb');
+
+# warn "b objects : ", $b_objects->count, "\n";
+
+my $b_object = $b_objects->first;
+
+is($b_object->id, 20, 'got object from first result set ok');
+
+my $c_objects = TestClass->search(foo_bar => 'cccc');
+
+# warn "c objects : ", $c_objects->count, "\n";
+
+my $c_object = $c_objects->first;
+
+is($c_object->id, 21, 'got object from second result set ok');
