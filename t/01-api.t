@@ -4,7 +4,7 @@ use strict;
 
 use Data::Dumper;
 
-use Test::More tests => 8;
+use Test::More tests => 14;
 
 use lib qw(t/);
 
@@ -76,3 +76,33 @@ my $c_objects = TestClass->search(foo_bar => 'cccc');
 my $c_object = $c_objects->first;
 
 is($c_object->id, 21, 'got object from second result set ok');
+
+TestClass->next_result_session([
+				{
+				 statement => qr/SELECT foo_id\s*FROM\s*testing123\s*WHERE\s*foo_bar\s+\=/,
+				 results => [ [qw/foo_id foo_name foo_bar/],[20,'aaaa','bbbb',], ],
+				 bound_params => [ qr/\w+/ ],
+				},
+				{
+				 statement => qr/SELECT foo_id\s*FROM\s*testing123\s*WHERE\s*foo_bar\s+\=/,
+				 results => [ [qw/foo_id foo_name foo_bar/], ],
+				 bound_params => [ qr/\w+/ ],
+				},
+				{
+				 statement => qr/SELECT foo_id\s*FROM\s*testing123\s*WHERE\s*foo_bar\s+\=/,
+				 results => [ [qw/foo_id foo_name foo_bar/],[21,'aaaa','cccc',], ],
+				 bound_params => [ qr/\w+/ ],
+				},
+			       ]);
+
+my $objects1 = TestClass->search(foo_bar => 'bbbb');
+my $objects2 = TestClass->search(foo_bar => 'cccc');
+my $objects3 = TestClass->search(foo_bar => 'dddd');
+
+isa_ok($objects1, 'Class::DBI::Iterator','first normal search ok');
+isa_ok($objects2, 'Class::DBI::Iterator','2nd empty search ok');
+isa_ok($objects3, 'Class::DBI::Iterator','3rd normal search ok');
+
+is($objects1->count(), 1, 'normal result count correct'); 
+is($objects2->count(), 0, 'empty result count correct'); 
+is($objects3->count(), 1, 'normal result count correct'); 

@@ -53,7 +53,7 @@ __PACKAGE__->mk_classdata('mocked_statement_handle');
 
 __PACKAGE__->connection('dbi:Mock:', '', '', {});
 
-our $VERSION = '0.02';
+our $VERSION = '0.03';
 
 =head1 METHODS
 
@@ -116,12 +116,12 @@ sub last_query_info {
 
   if ($type eq 'params') {
     my $sth = $class->mocked_statement_handle();
-    croak("last_query_info can't be called with params without executing query") unless ($sth && ($sth->{mock_is_executed} eq 'yes'));
+    croak("Class::DBI::MockDBD -- last_query_info can't be called with params without executing query") unless ($sth && ($sth->{mock_is_executed} eq 'yes'));
     $return = $class->mocked_params;
   } elsif ($type eq 'statement') {
     $return = $class->mocked_statement;
   } else {
-    carp "$type not recognised as argument to last_query_info";
+    carp "Class::DBI::MockDBD -- $type not recognised as argument to last_query_info";
   }
 
   return $return;
@@ -148,8 +148,8 @@ sub sth_to_objects {
   my ($class,$sth,$args) = (shift,@_);
 
   # check arguments and state of handles
-  croak("sth_to_objects needs a statement handle") unless ($sth);
-  carp("no records to instantiate into objects - did you set results via next_result?") unless ($sth->{mock_num_records});
+  croak("Class::DBI::MockDBD -- sth_to_objects needs a statement handle") unless ($sth);
+  carp("Class::DBI::MockDBD -- no records to instantiate into objects - did you set results via next_result?") unless ($sth->{mock_num_records});
 
   # handle Ima::DBI sql_foo methods
   unless (UNIVERSAL::isa($sth => "DBI::st")) {
@@ -157,7 +157,7 @@ sub sth_to_objects {
     $sth = $class->$meth();
   }
 
-  my $rows;
+  my $rows = [];
   eval { $sth->execute(@$args) unless $sth->{Active};
 	 # set last statement handle to check state in other methods later
 	 $class->mocked_statement_handle($sth);
@@ -171,7 +171,7 @@ sub sth_to_objects {
  	 }
         };
 
-  return $class->_croak("$class can't $sth->{Statement}: $@", err => $@)
+  return $class->_croak("Class::DBI::MockDBD -- $class can't $sth->{Statement}: $@", err => $@)
     if $@;
   return $class->_ids_to_objects($rows);
 }
@@ -216,7 +216,7 @@ sub _insert_row {
 sub update {
   my $self  = shift;
   my $class = ref($self)
-    or return $self->_croak("Can't call update as a class method");
+    or return $self->_croak("Class::DBI::MockDBD -- Can't call update as a class method");
 
   $self->call_trigger('before_update');
   return -1 unless my @changed_cols = $self->is_changed;
